@@ -18,9 +18,14 @@ class Data:
         self.name = name
         self.people = 0
         self.rate_items = {}
+        self.salary = 0
 
     def set_people(self, people):
         self.people = float(people)
+
+    def set_salary(self, s):
+        self.salary = float(s)
+
 
     def add_people(self, n):
         self.people = self.people + float(n)
@@ -72,9 +77,13 @@ class DataList:
 class MajorData(Data):
     def __init__(self, id, name):
         super().__init__(id, name)
+        self.need_people = 0
+
+    def set_need_people(self, str):
+        self.need_people = float(str)
 
     def get(self):
-        outlist = [self.id, self.name, self.people]
+        outlist = [self.id, self.name, self.people, self.need_people, self.salary]
         for job, rate in self.rate_items.items():
             outlist.append(job + ":" + str(rate))
         return outlist
@@ -89,7 +98,6 @@ class MajorData(Data):
 class JobData(Data):
     def __init__(self, id, name):
         super().__init__(id, name)
-        self.salary = 0
         self.subjob = ''
         self.all_people = 0
 
@@ -102,8 +110,6 @@ class JobData(Data):
             outlist.append(major + ":" + str(rate))
         return outlist
 
-    def set_salary(self, s):
-        self.salary = float(s)
 
     def set_subjob(self, j):
         self.subjob = j
@@ -112,6 +118,16 @@ class JobData(Data):
 class MajorList(DataList):
     def __init__(self):
         super().__init__()
+
+    def get_most_salary(self, num):
+        temp = self.dataList.copy()
+        temp.sort(key=lambda x: x.salary, reverse=True)
+        return [(data.name, data.salary) for data in temp[:num]]
+
+    def get_least_salary(self, num):
+        temp = self.dataList.copy()
+        temp.sort(key=lambda x: x.salary, reverse=False)
+        return [(data.name, data.salary) for data in temp[:num]]
 
     def set_job_rate_data(self, name, job, rate):
         data = self.find_data(name)
@@ -153,7 +169,9 @@ class MajorList(DataList):
                 self.num = max(self.num, int(temp[0]))
                 data = MajorData(int(temp[0]), temp[1])
                 data.set_people(temp[2])
-                for item in temp[3:]:
+                data.set_need_people(temp[3])
+                data.set_salary(temp[4])
+                for item in temp[5:]:
                     if item != '':
                         job.append(item.split(':')[0])
                         rate.append(item.split(':')[1])
@@ -176,7 +194,7 @@ class MajorList(DataList):
         # path = os.path.join(self.outputdir, name)
         with open(name, 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(["id", "专业名", "人数", "行业情况"])
+            writer.writerow(["id", "专业名", "人数", "需求人数", "薪资水平", "行业情况"])
             for data in self.dataList:
                 writer.writerow(data.get())
 
