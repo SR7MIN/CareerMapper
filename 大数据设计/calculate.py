@@ -10,9 +10,11 @@ import os
 from torch import Tensor
 from tqdm import trange, tqdm
 
-from load_data import load_train_data, output_train_data
+from load_data import load_train_data, output_train_data, MajorList, JobList
 
 from torch.utils.tensorboard import SummaryWriter
+
+from model_helper import Major_Rate_Model, MSE
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -22,34 +24,10 @@ basedir = './logs'  # 训练数据保存文件夹
 expname = '000'  # 实验名
 
 
-class Major_Rate_Model(nn.Module):
-    def __init__(self, D, W, input_ch, output_ch):
-        super(Major_Rate_Model, self).__init__()
-        self.D = D  # D=8 netdepth网络的深度 ,也就是网络的层数 layers in network
-        self.W = W  # W=256 netwidth网络宽度 , 也就每一层的神经元的个数 channels per layer
-        self.input_ch = input_ch  # 输入维度
-        self.output_ch = output_ch  # 输出维度
-
-        Linears_list = [nn.Linear(input_ch, W)]
-        for i in range(D - 1):
-            Linears_list.append(nn.Linear(W, W))
-        self.pts_linears = nn.ModuleList(Linears_list)
-
-        # 在第9层添加24维度的方向数据和10维的距离数据，并且输出128维的信息
-        self.out_linear = nn.Linear(W, output_ch)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, h):
-        assert len(h.shape) == 1
-        for i, l in enumerate(self.pts_linears):
-            h = self.pts_linears[i](h)
-            h = F.relu(h)
-        output = self.out_linear(h)
-        output = self.sigmoid(output)
-        return torch.softmax(output, 0)
-
-
-def create_model(input_ch, output_ch):
+def create_major_relateed_model(input_ch, output_ch):
+    '''
+    不可训练，废弃
+    '''
     # 模型参数设定
     netdepth = 4
     netwidth = 128
@@ -82,8 +60,7 @@ def create_model(input_ch, output_ch):
     return model, start, grad_vars, optimizer, raw_noise_std
 
 
-def MSE(x, y):
-    return torch.mean((x - y) ** 2)
+
 
 
 def my_func(output, value, data, _list):
@@ -105,7 +82,10 @@ def my_func(output, value, data, _list):
 #     noise = torch.randn(raw[..., 1].shape) * raw_noise_std
 
 
-def train():
+def train_major_related_model():
+    '''
+        训练专业相关模型，废弃
+    '''
     # 测试变量
     i_print = 100  # 打印测试信息的轮数
     i_testset = 5000  # 导出测试集的轮数
@@ -113,14 +93,11 @@ def train():
 
     writer = SummaryWriter(os.path.join(basedir, expname))
 
-    data, i2list_dict = load_train_data('./data',
-                                                                                       '363个专业的信息.csv',
-                                                                                       '专业人数.csv',
-                                                                                       '47个行业的信息.csv')
+    data, i2list_dict = load_train_data('./data', '363个专业的信息.csv','专业人数.csv','47个行业的信息.csv')
     data = torch.Tensor(data).to(device)
     major_num = data.shape[0]
     job_num = data.shape[1]
-    model, start, grad_vars, optimizer, raw_noise_std = create_model(major_num, job_num)
+    model, start, grad_vars, optimizer, raw_noise_std = create_major_relateed_model(major_num, job_num)
 
     N_iters = 30001 + 1
     print('Begin')
@@ -193,8 +170,10 @@ def train():
         global_step += 1
 
 
-
-def method_1(is_output = False):
+def fit_major_rate_by_related(is_output=False):
+    '''
+    基于专业相关性拟合就业去向数据
+    '''
     data, i2list_dict, dicts = load_train_data('./data','363个专业的信息.csv','专业人数.csv','47个行业的信息.csv')
     init_data = data.copy()
     data = torch.Tensor(data).to(device)
@@ -250,10 +229,56 @@ def method_1(is_output = False):
             csv_writer.writerow(['原始数据'])
             csv_writer.writerows(init_data)
 
-    output_train_data(os.path.join(basedir, expname), data.cpu().numpy(), dicts)
+    output_train_data(os.path.join(basedir, expname), data.cpu().numpy(), dicts, './data/专业人数.csv')
 
     return data.cpu().numpy()
 
 
+def convert_mrate2jrate(mlist: MajorList, jlist: JobList):
+    job_list = mlist.get_all_curr_job()
+    assert jlist.num == len(job_list)
+    for job in job_list:
+        majors, rates, people = [], [], 0
+        for data in mlist.dataList:
+            if job in data.rate_items:
+                majors.append(data.name)
+                rates.append(data.people * data.rate_items[job])
+                people += data.people * data.rate_items[job] / 100
+        rates = [r / sum(rates) * 100 for r in rates]
+        jlist.set_major_rate_data(job, majors, rates)
+        jlist.set_people(job, people)
+    return jlist
 
-method_1()
+
+def convert_j2subj(jlist: JobList):
+    all_subjob = jlist.get_all_subjob()
+    subjlist = JobList(True)
+    majors = [_ for _ in jlist.dataList[0].rate_items.keys()]
+    for subjob in all_subjob:
+        rates, peoples, people_num = [], [], 0
+        for data in jlist.dataList:
+            if data.subjob == subjob:
+                rates.append([_ for _ in data.rate_items.values()])
+                peoples.append(data.people)
+                people_num += data.people
+        rates, peoples = np.asarray(rates), np.asarray(peoples)
+        peoples /= sum(peoples)
+        rates = np.multiply(rates, peoples[:, None])
+        rates = np.sum(rates, 0)
+        subjlist.set_major_rate_data(subjob, majors, rates)
+        subjlist.set_people(subjob, people_num)
+    return subjlist
+
+
+
+# mlist = MajorList()
+# mlist.load_from_csv("D:\\大创\\ForContest\\大数据设计\\data\\363个专业的信息.csv")
+jlist = JobList()
+jlist.load_from_csv("D:\\大创\ForContest\\大数据设计\\data\\47个行业的信息.csv")
+s = jlist.get_all_subjob()
+j = convert_j2subj(jlist)
+j.load_all_people("D:\\大创\\ForContest\\大数据设计\\data\\job\\国统局行业人数.csv")
+j.load_salary("D:\\大创\\ForContest\\大数据设计\\data\\job\\国统局薪资水平.csv")
+j.output('D:\\大创\\ForContest\\大数据设计\\data')
+# jlist = convert_mrate2jrate(mlist, jlist)
+# jlist.output('D:\\大创\\ForContest\\大数据设计')

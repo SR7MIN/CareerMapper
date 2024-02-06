@@ -91,9 +91,13 @@ class JobData(Data):
         super().__init__(id, name)
         self.salary = 0
         self.subjob = ''
+        self.all_people = 0
 
-    def get(self):
-        outlist = [self.id, self.name, self.people, self.subjob, self.salary]
+    def get(self, is_sub=False):
+        if is_sub:
+            outlist = [self.id, self.name, self.people, self.all_people, self.salary]
+        else:
+            outlist = [self.id, self.name, self.people, self.subjob, self.salary]
         for major, rate in self.rate_items.items():
             outlist.append(major + ":" + str(rate))
         return outlist
@@ -210,8 +214,49 @@ class MajorList(DataList):
 
 
 class JobList(DataList):
-    def __init__(self):
+    def __init__(self, is_sub=False):
         super().__init__()
+        self.is_sub = is_sub
+
+    def set_salary(self, name, salary):
+        data = self.find_data(name)
+        if data is None:
+            return
+        data.salary = salary
+
+    def load_salary(self, file):
+        with open(file, 'r') as f:
+            lines = f.readlines()[1:]
+            for line in lines:
+                temp = line.replace('\r', '').replace('\n', '').split(',')
+                name = temp[0]
+                salary = float(temp[1])
+                self.set_salary(name, salary)
+
+    def get_all_subjob(self):
+        sub_jobs = []
+        for data in self.dataList:
+            if data.subjob not in sub_jobs and data.subjob != '':
+                sub_jobs.append(data.subjob)
+        return sub_jobs
+
+    def set_all_people(self, name, all_people):
+        data = self.find_data(name)
+        if data is None:
+            return
+        data.all_people = all_people
+
+    def set_people(self, name, people):
+        data = self.find_data(name)
+        data.set_people(people)
+
+    def set_major_rate_data(self, name, majors, rates):
+        data = self.find_data(name)
+        if data is None:
+            self.num = self.num + 1
+            data = JobData(self.num, name)
+            self.dataList.append(data)
+        data.set_rates(majors, rates)
 
     def add_jobs(self, jobs):
         for job in jobs:
@@ -221,13 +266,19 @@ class JobList(DataList):
                 data = JobData(self.num, job)
                 self.dataList.append(data)
 
-    def output(self):
-        name = '{0}个行业的信息.csv'.format(self.num)
+    def output(self, dir=''):
+        if self.is_sub:
+            name = os.path.join(dir, '{0}个国统局行业的信息.csv'.format(self.num))
+        else:
+            name = os.path.join(dir, '{0}个行业的信息.csv'.format(self.num))
         with open(name, 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(["id", "行业名", "人数", "国统局对应", "平均薪资", "专业关联"])
+            if self.is_sub:
+                writer.writerow(["id", "行业名", "人数", "行业总人数（万人）", "平均薪资", "专业关联"])
+            else:
+                writer.writerow(["id", "行业名", "人数", "国统局对应", "平均薪资", "专业关联"])
             for data in self.dataList:
-                writer.writerow(data.get())
+                writer.writerow(data.get(self.is_sub))
 
     def add_major_rate(self, job_name, major_name, major_people, rate):
         data = self.find_data(job_name)
@@ -261,13 +312,25 @@ class JobList(DataList):
                 data = JobData(int(temp[0]), temp[1])
                 data.set_people(temp[2])
                 data.set_salary(temp[4])
-                data.set_subjob(temp[3])
+                if self.is_sub:
+                    data.all_people = float(temp[3])
+                else:
+                    data.set_subjob(temp[3])
                 for item in temp[5:]:
                     if item != '':
                         majors.append(item.split(':')[0])
                         rates.append(item.split(':')[1])
                 data.set_rates(majors, rates)
                 self.dataList.append(data)
+
+    def load_all_people(self, file):
+        with open(file, 'r') as f:
+            lines = f.readlines()[1:]
+            for line in lines:
+                temp = line.replace('\r', '').replace('\n', '').split(',')
+                name = temp[0]
+                all_people = float(temp[1])
+                self.set_all_people(name, all_people)
 
 
 def load_train_data(datadir, data_name, people_name, job_name):
@@ -304,7 +367,7 @@ def load_train_data(datadir, data_name, people_name, job_name):
     return output, i2list_dict, dicts
 
 
-def output_train_data(datadir, data, dicts):
+def output_train_data(datadir, data, dicts, peopledir):
     i2n_dict_major, i2n_dict_job, n2i_dict_major, n2i_dict_job = dicts
     mlist = MajorList()
     for i, l in enumerate(data):
@@ -314,23 +377,28 @@ def output_train_data(datadir, data, dicts):
             jobs.append(i2n_dict_job[j])
             rates.append(rate*100)
         mlist.set_job_rate_data(name, jobs, rates)
+    mlist.load_people_data(peopledir)
     mlist.output(datadir)
 
 
 
 # datadir = './major'
-# dlist = MajorList()
-# dlist.load_from_csv("D:\\大创\\ForContest\\大数据设计\\data\\363个专业的信息.csv")
+
 # # datafiles = os.listdir(datadir)
 # # for file in datafiles:
 # #     path = os.path.join(datadir, file)
 # #     dlist.load_job_rate_data(path, file.split('.')[0])
-# dlist.load_people_data("D:\\大创\\ForContest\\大数据设计\\专业人数.csv")
-# dlist.remove_incomplete()
+
 #
 #
 # jlist = JobList()
 # jlist.load_from_csv("D:\\大创\ForContest\\大数据设计\\data\\48个行业的信息.csv")
 # jlist.add_jobs(dlist.get_all_curr_job())
 # jlist.output()
-# dlist.output()
+
+
+# dlist = MajorList()
+# dlist.load_from_csv("D:\\大创\\ForContest\\大数据设计\\logs\\000\\363个专业的信息.csv")
+# dlist.load_people_data("D:\\大创\\ForContest\\大数据设计\\专业人数.csv")
+# dlist.remove_incomplete()
+# dlist.output('D:\\大创\\ForContest\\大数据设计\\data')
