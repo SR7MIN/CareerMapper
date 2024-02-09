@@ -60,9 +60,6 @@ def create_major_relateed_model(input_ch, output_ch):
     return model, start, grad_vars, optimizer, raw_noise_std
 
 
-
-
-
 def my_func(output, value, data, _list):
     _out_sum = 0
     _tar_sum = 0
@@ -76,6 +73,7 @@ def my_func(output, value, data, _list):
     for i in _list:
         target[i] = data[i]
     return MSE(output, target)
+
 
 # noise = 0.
 # if raw_noise_std > 0.:
@@ -93,7 +91,7 @@ def train_major_related_model():
 
     writer = SummaryWriter(os.path.join(basedir, expname))
 
-    data, i2list_dict = load_train_data('./data', '363个专业的信息.csv','专业人数.csv','47个行业的信息.csv')
+    data, i2list_dict = load_train_data('./data', '363个专业的信息.csv', '专业人数.csv', '47个行业的信息.csv')
     data = torch.Tensor(data).to(device)
     major_num = data.shape[0]
     job_num = data.shape[1]
@@ -164,7 +162,6 @@ def train_major_related_model():
                     csv_writer.writerow(['原始数据'])
                     csv_writer.writerows(data)
 
-
             print('Saved test set')
 
         global_step += 1
@@ -174,7 +171,7 @@ def fit_major_rate_by_related(is_output=False):
     '''
     基于专业相关性拟合就业去向数据
     '''
-    data, i2list_dict, dicts = load_train_data('./data','363个专业的信息.csv','专业人数.csv','47个行业的信息.csv')
+    data, i2list_dict, dicts = load_train_data('./data', '363个专业的信息.csv', '专业人数.csv', '47个行业的信息.csv')
     init_data = data.copy()
     data = torch.Tensor(data).to(device)
     major_num = data.shape[0]
@@ -209,7 +206,7 @@ def fit_major_rate_by_related(is_output=False):
             a, b = Tensor(a).reshape([1, -1]), Tensor(b).reshape([1, -1])
             mark += torch.cosine_similarity(a, b)
             # 更新填充数据
-            a *= b.sum()/a.sum()
+            a *= b.sum() / a.sum()
             flag = 0
             for _i in range(job_num):
                 if _i not in _list:
@@ -270,15 +267,63 @@ def convert_j2subj(jlist: JobList):
     return subjlist
 
 
+def convert_salary_job2major(jlist: JobList, mlist: MajorList):
+    for m_data in mlist.dataList:
+        salary = 0
+        for j_data in jlist.dataList:
+            salary += j_data.salary / 100 * m_data.rate_items[j_data.name]
+        m_data.set_salary(salary)
+    mlist.output()
 
-# mlist = MajorList()
-# mlist.load_from_csv("D:\\大创\\ForContest\\大数据设计\\data\\363个专业的信息.csv")
+
+def get_job_need(file, dir):
+    name, need = [], []
+    with open(file, 'r') as f:
+        _ = f.readline()
+        lines = f.readlines()
+        for line in lines:
+            temp = line.replace('\r', '').replace('\n', '').split(',')
+            name.append(temp[0])
+            need.append((float(temp[1]) - float(temp[2])) * 10000)
+    filepath = os.path.join(dir, '行业需求情况.csv')
+    with open(filepath, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for i in range(len(name)):
+            writer.writerow([name[i], need[i]])
+
+
+def get_major_need(file, mlist: MajorList, jlist: JobList):
+    all_job = {}
+    with open(file, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            temp = line.replace('\r', '').replace('\n', '').split(',')
+            all_job[temp[0]] = float(temp[1])
+    for m_data in mlist.dataList:
+        need = 0
+        for j_data in jlist.dataList:
+            need += j_data.rate_items[m_data.name] / 100 * all_job[j_data.name]
+        m_data.set_need_people(need)
+    mlist.output()
+
+
+mlist = MajorList()
+mlist.load_from_csv("363个专业的信息.csv")
+# l = mlist.get_least_salary(10)
+
 jlist = JobList()
 jlist.load_from_csv("D:\\大创\ForContest\\大数据设计\\data\\47个行业的信息.csv")
-s = jlist.get_all_subjob()
+# s = jlist.get_all_subjob()
 j = convert_j2subj(jlist)
 j.load_all_people("D:\\大创\\ForContest\\大数据设计\\data\\job\\国统局行业人数.csv")
 j.load_salary("D:\\大创\\ForContest\\大数据设计\\data\\job\\国统局薪资水平.csv")
 j.output('D:\\大创\\ForContest\\大数据设计\\data')
 # jlist = convert_mrate2jrate(mlist, jlist)
 # jlist.output('D:\\大创\\ForContest\\大数据设计')
+convert_salary_job2major(j, mlist)
+mlist.output()
+# jlist = JobList(True)
+# jlist.load_from_csv("data\\18个国统局行业的信息.csv")
+# get_job_need("data\\job\\国统局行业人数.csv", '')
+# get_major_need("行业需求情况.csv", mlist, jlist)
+
