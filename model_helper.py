@@ -122,14 +122,86 @@ class Subjob_predictive_model(nn.Module):
         model_list = [Model_block(D, W, input_ch, add_chs) for _ in range(output_ch)]
         self.model_list = nn.ModuleList(model_list)
         self.linear = nn.Linear(output_ch, output_ch)
+        self.in_linear = nn.Linear(input_ch, input_ch * output_ch)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, gdb, adds):
-        output = torch.cat([model(gdb, adds) for model in self.model_list])
+        gdb = self.in_linear(gdb)
+        output = torch.cat([model(gdb[i*self.input_ch:(i+1)*self.input_ch], adds) for i, model in enumerate(self.model_list)])
         output = F.relu(output)
         output = self.linear(output)
-        output = self.sigmoid(output)
+        # output = self.sigmoid(output)
         return output
+
+
+class RegLSTM(nn.Module):
+    def __init__(self, inp_dim, mid_dim, mid_layers):
+        super(RegLSTM, self).__init__()
+
+        self.in_linear = nn.Linear(inp_dim, inp_dim)
+        self.model_list = nn.ModuleList([nn.LSTM(1, mid_dim, mid_layers) for _ in range(inp_dim)])
+        self.model_linear_list = nn.ModuleList([nn.Linear(mid_dim, 1) for _ in range(inp_dim)])
+        self.out_linear = nn.Linear(inp_dim, inp_dim)
+        self.sigmod = nn.Sigmoid()
+
+    def forward(self, x):
+        seq_len, batch_size, hid_dim = x.shape
+        h = self.in_linear(x.view(-1, hid_dim))
+        h = F.relu(h).view(seq_len, batch_size, hid_dim)
+        h = torch.stack([self.model_linear_list[i](self.model_list[i](h[..., i])[0]) for i in range(hid_dim)], -1)
+        h = F.relu(h.view(-1, hid_dim))
+        h = self.out_linear(h)
+        h = h.view(seq_len, batch_size, -1)
+        return self.sigmod(h)
+
+
+class TextCnnModel(nn.Module):
+    def __init__(self, vocab_size, embedding_dim=20, output_dim=47, out_channels=66, filter_sizes=(2, 3, 4)):
+        """
+        TextCNN 模型
+        :param vocab_size: 语料大小
+        :param embedding_dim: 每个词的词向量维度
+        :param output_dim: 输出的维度，由于咱们是二分类问题，所以输出两个值，后面用交叉熵优化
+        :param out_channels: 卷积核的数量
+        :param filter_sizes: 卷积核尺寸
+        :param dropout: 随机失活概率
+        """
+        super().__init__()
+        conv_list = []
+        for conv_size in filter_sizes:
+            # 由于是文本的embedding，所以in_channels=1,常见的如图像的RGB，则in_channels=3
+            conv_list.append(nn.Conv2d(1, out_channels, (conv_size, embedding_dim)))
+            # nn.Conv2d 的使用：
+            # (batch_size, 特征图个数, 特征图长, 特征图宽) -> 经过nn.conv2d(特征图个数,输出的特征图个数,卷积核的长,卷积核的宽) ->
+            # (batch_size, 输出的特征图个数, a-b+1, ∂-ß+1)
+        self.conv_model = nn.ModuleList(conv_list)
+        # 最后的FC
+        self.linear = nn.Linear(out_channels * len(filter_sizes), output_dim)
+
+    def conv_and_pool(self, x, conv):
+        x = F.relu(conv(x)).squeeze(3)
+        x = F.max_pool1d(x, x.size(2)).squeeze(2)
+        return x
+
+    def forward(self, x):
+        # 步骤2：使用多种shape的卷积核进行卷积操作
+        conv_result_list = []
+        for conv in self.conv_model:
+            # 过一层卷积，然后把最后一个维度(值=1)剔除掉
+            conv_out = F.relu(conv(x)).squeeze(3)  # shape=(batch_size, 66 out_channels, 19)
+            # 步骤3：对每一层做最大池化，然后拼接起来
+            max_conv_out = F.max_pool1d(conv_out, conv_out.size(2)).squeeze(2)  # shape = (batch_size, 66 out_channels)
+            conv_result_list.append(max_conv_out)
+        # 步骤4：拼接起来
+        concat_out = torch.cat(conv_result_list, dim=1)  # 这里要指定第二个维度（dim=0对应第一个维度）
+        # 步骤5：
+        model_out = self.linear(concat_out)
+        return model_out
+
+    def get_embedding(self, token_list: list):
+        return self.embedding(torch.Tensor(token_list).long())
+
+
 
 
 def MSE(x, y):
