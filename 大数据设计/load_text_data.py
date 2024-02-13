@@ -12,7 +12,7 @@ targets = []
 
 
 def load_train_data(data_path):
-    with open("data/训练标签.csv", 'r') as f:
+    with open("./data/训练标签.csv", 'r') as f:
         lines = f.readlines()
         count = 0
         for line in lines:
@@ -30,8 +30,20 @@ def load_train_data(data_path):
                 sentence_list.append(temp[0])
 
 
+def load_all_jobs(data_path):
+    with open(data_path, 'r', encoding='ANSI') as f:
+        lines = f.readlines()[1:]
+        for line in lines:
+            temp = line.replace('\r', '').replace('\n', '').split(',')
+            if len(temp) >= 3:
+                sentence_list.append(temp[1] + temp[2])
+
+
 def sentence2word():
     words_list = []
+    jieba.add_word('社招')
+    jieba.add_word('秋招')
+    jieba.add_word('校招')
     for sentence in sentence_list:
         words_list.append(list(jieba.cut(sentence)))
     return words_list
@@ -40,7 +52,7 @@ def sentence2word():
 def word2dict(words_list):
     model = Word2Vec(
         words_list,  # 需要训练的文本
-        vector_size=20,
+        vector_size=100,
         min_count=1,  # 忽略总频率低于此的所有单词 出现的频率小于 min_count 不用作词向量
         sg=1,  # 训练方法 1：skip-gram 0；CBOW。
         epochs=100,  # 语料库上的迭代次数
@@ -69,10 +81,39 @@ def load_text_data(data_path, model: Word2Vec, sentence_len, vector_size):
     return inputs, targets, label_list, l2i_dict, i2l_dict, sentence_list
 
 
+def load_apply_data(data_path, model: Word2Vec, sentence_len, vector_size):
+    with open("./data/训练标签.csv", 'r') as f:
+        lines = f.readlines()
+        count = 0
+        for line in lines:
+            temp = line.replace('\r', '').replace('\n', '').split(',')
+            i2l_dict[count] = temp[0]
+            count += 1
+    text_list = []
+    with open(data_path, 'r', encoding='ANSI') as f:
+        lines = f.readlines()[1:]
+        for line in lines:
+            temp = line.replace('\r', '').replace('\n', '').split(',')
+            if len(temp) >= 3:
+                text_list.append([temp[1], temp[2]])
+                sentence_list.append(temp[1] + temp[2])
+    words_list = sentence2word()
+    for i, words in enumerate(words_list):
+        temp = np.zeros([sentence_len, vector_size])
+        for j in range(min(len(words), sentence_len)):
+            temp[j] = np.asarray(model.wv[words[j]])
+        inputs.append(temp)
+    return text_list, inputs, i2l_dict
+
+
+
 def train_word_vector(path):
-    load_train_data(path)
+    load_all_jobs(path)
     words_list = sentence2word()
     _ = word2dict(words_list)
+
+
+# train_word_vector("./all_jobs.txt")
 
 # load_train_data("data/岗位训练数据集.csv")
 # sentence2word()

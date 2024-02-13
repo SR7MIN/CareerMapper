@@ -11,11 +11,11 @@ from tqdm import trange, tqdm
 from torch.utils.tensorboard import SummaryWriter
 
 from model_helper import TextCnnModel
-from 大数据设计.load_text_data import load_text_data
+from 大数据设计.load_text_data import load_text_data, load_apply_data
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+np.random.seed(0)
 # 全局变量
 basedir = './logs'  # 训练数据保存文件夹
 expname = '1000'  # 实验名
@@ -23,10 +23,10 @@ expname = '1000'  # 实验名
 
 def create_textcnn_model():
     # 模型参数设定
-    embedding_dim = 20
+    embedding_dim = 100
     output_dim = 47
     out_channels = 66
-    filter_sizes = (2, 3, 4)
+    filter_sizes = (3, 4, 5)
 
     # 训练参数设定
     lrate = 5e-4  # 学习率
@@ -58,27 +58,27 @@ def create_textcnn_model():
 def train():
     # 测试变量
     i_print = 10000  # 打印测试信息的轮数
-    i_weights = 500000  # 保存训练信息的轮数
-    i_test = 2000
+    i_weights = 5000  # 保存训练信息的轮数
+    i_test = 500
     writer = SummaryWriter(os.path.join(basedir, expname))
 
     w2v_model = gensim.models.Word2Vec.load("./words.model")
-    inputs, targets, label_list, l2i_dict, i2l_dict, sentence_list = load_text_data("data/岗位训练数据集.csv", w2v_model, 20, 20)
+    inputs, targets, label_list, l2i_dict, i2l_dict, sentence_list = load_text_data("111.csv", w2v_model, 20, 100)
 
 
 
-    rand_num = 20
+    rand_num = 1600
     test = Tensor(np.stack(inputs[:rand_num])).to(device)
     test_tar = np.stack(targets[:rand_num])
-    inputs = Tensor(np.stack(inputs[rand_num:])).to(device)
-    targets = Tensor(np.stack(targets[rand_num:])).to(device)
+    inputs = Tensor(np.stack(inputs)).to(device)
+    targets = Tensor(np.stack(targets)).to(device)
 
     model, start, grad_vars, optimizer, raw_noise_std = create_textcnn_model()
     lose_func = nn.CrossEntropyLoss()
     global_step = start
 
     N_iters = 10000 + 1
-    batch = 256
+    batch = 1024
     start = start + 1
     i_batch = 0
 
@@ -151,9 +151,28 @@ def train():
                         csv_writer.writerow([sentence_list[i], i2l_dict[idx_p], i2l_dict[idx_t]])
                         if idx_p != idx_t:
                             fault_count += 1
+                            if idx_t in [6, 21] and idx_p in [6, 21]:
+                                fault_count -= 1
                     csv_writer.writerow(['误差：{}%'.format(fault_count/rand_num*100)])
 
 
 
 
-train()
+def apply(path):
+    w2v_model = gensim.models.Word2Vec.load("./words.model")
+    text_list, inputs, i2l_dict = load_apply_data(path, w2v_model, 20, 100)
+    inputs = Tensor(np.stack(inputs)).to(device)
+    model, start, grad_vars, optimizer, raw_noise_std = create_textcnn_model()
+    testsavedir = os.path.join(basedir, expname, '预测结果.csv')
+    with torch.no_grad():
+        outs = model(inputs[:, None]).cpu().numpy()
+        with open(testsavedir, 'w', newline='',encoding='ANSI') as file:
+            csv_writer = csv.writer(file)
+            csv_writer.writerow(['岗位', '企业', '预测分类'])
+            for i, out in enumerate(outs):
+                idx_p = int(np.where(out == max(out))[0])
+                csv_writer.writerow([text_list[i][0], text_list[i][1], i2l_dict[idx_p]])
+
+
+# train()
+apply('all_jobs.txt')

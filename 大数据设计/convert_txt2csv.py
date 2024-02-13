@@ -7,7 +7,7 @@ def convert(path, path2):
         with open(path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
             for line in lines:
-                temp = line.replace('\r', '').replace('\n', '').split(' ')
+                temp = line.replace('\r', '').replace('\n', '').replace('   ', '').split(' ')
                 if len(temp) == 4:
                     csv_writer.writerow(temp[1:])
 
