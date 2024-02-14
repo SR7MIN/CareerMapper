@@ -11,7 +11,7 @@ from tqdm import trange, tqdm
 from torch.utils.tensorboard import SummaryWriter
 
 from model_helper import TextCnnModel
-from 大数据设计.load_text_data import load_text_data, load_apply_data
+from load_text_data import load_text_data, load_apply_data
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -158,12 +158,12 @@ def train():
 
 
 
-def apply(path):
+def apply(path, save_path):
     w2v_model = gensim.models.Word2Vec.load("./words.model")
     text_list, inputs, i2l_dict = load_apply_data(path, w2v_model, 20, 100)
     inputs = Tensor(np.stack(inputs)).to(device)
     model, start, grad_vars, optimizer, raw_noise_std = create_textcnn_model()
-    testsavedir = os.path.join(basedir, expname, '预测结果.csv')
+    testsavedir = os.path.join(save_path, '预测结果.csv')
     with torch.no_grad():
         outs = model(inputs[:, None]).cpu().numpy()
         with open(testsavedir, 'w', newline='',encoding='ANSI') as file:
@@ -175,4 +175,4 @@ def apply(path):
 
 
 # train()
-apply('all_jobs.txt')
+# apply('all_jobs.txt', os.path.join(basedir, expname))

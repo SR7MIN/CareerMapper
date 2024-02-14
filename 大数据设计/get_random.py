@@ -30,11 +30,12 @@ def get_random_file(numbers):
             i-=1
     file1.close()
 
+
 def get_file():
-    with open("C:\\Users\\jiayu.sun\\Desktop\\data\\current_jobs.txt",'r',encoding="ANSI") as file:
-        lines=file.readlines()
+    with open("current_jobs.txt",'r') as file:
+        lines = file.readlines()
     
-    newfile=open("all_jobs.csv","w",newline='',encoding='ANSI')
+    newfile=open("all_jobs.csv","w",newline='')
     writer=csv.writer(newfile)
     writer.writerow(["index","岗位名称","单位名称"])
     for i in range(len(lines)):
@@ -43,6 +44,6 @@ def get_file():
             writer.writerow([i,lineparts[0],lineparts[1].split('|')[0]if '|' in lineparts[1] else lineparts[1]])
     newfile.close()
 
-get_random_file(25000)
+# get_random_file(25000)
 get_file()
 

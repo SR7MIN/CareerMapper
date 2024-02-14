@@ -98,10 +98,12 @@ def load_apply_data(data_path, model: Word2Vec, sentence_len, vector_size):
                 text_list.append([temp[1], temp[2]])
                 sentence_list.append(temp[1] + temp[2])
     words_list = sentence2word()
+    all_words = model.wv.index_to_key
     for i, words in enumerate(words_list):
         temp = np.zeros([sentence_len, vector_size])
         for j in range(min(len(words), sentence_len)):
-            temp[j] = np.asarray(model.wv[words[j]])
+            if words[j] in all_words:
+                temp[j] = np.asarray(model.wv[words[j]])
         inputs.append(temp)
     return text_list, inputs, i2l_dict
 
