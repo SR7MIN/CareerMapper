@@ -90,7 +90,7 @@ def load_apply_data(data_path, model: Word2Vec, sentence_len, vector_size):
             i2l_dict[count] = temp[0]
             count += 1
     text_list = []
-    with open(data_path, 'r', encoding='ANSI') as f:
+    with open(data_path, 'r') as f:
         lines = f.readlines()[1:]
         for line in lines:
             temp = line.replace('\r', '').replace('\n', '').split(',')

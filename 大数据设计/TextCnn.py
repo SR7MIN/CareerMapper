@@ -166,7 +166,7 @@ def apply(path, save_path):
     testsavedir = os.path.join(save_path, '预测结果.csv')
     with torch.no_grad():
         outs = model(inputs[:, None]).cpu().numpy()
-        with open(testsavedir, 'w', newline='',encoding='ANSI') as file:
+        with open(testsavedir, 'w', newline='') as file:
             csv_writer = csv.writer(file)
             csv_writer.writerow(['岗位', '企业', '预测分类'])
             for i, out in enumerate(outs):

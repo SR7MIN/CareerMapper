@@ -12,7 +12,7 @@ id=1
 for i in range(1,17192):
     urls.append("https://www.ncss.cn/student/jobs/jobslist/ajax/?jobType=&areaCode=&jobName=&monthPay=&industrySectors=&recruitType=&property=&categoryCode=&memberLevel=&offset={0}&limit=10&keyUnits=&degreeCode=&sourcesName=&sourcesType=&_=1707310744313".format(i))    
 
-file=open("current_jobs.txt","w")    #file=open("current_jobs.txt","w")
+file=open("current_jobs.txt","w",encoding='gbk')    #file=open("current_jobs.txt","w")
 #
 #     特别注意
 #

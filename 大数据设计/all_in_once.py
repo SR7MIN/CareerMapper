@@ -2,11 +2,11 @@ import os
 from get_random import get_file
 from TextCnn import apply
 # 运行脚本获取所有岗位
-os.system('python ./spider_job.py')
+# os.system('python ./spider_job.py')
 # 自动分类岗位
 get_file()
 apply('all_jobs.csv', '')
-with open('预测结果.csv', 'r', encoding='ANSI') as file:
+with open('预测结果.csv', 'r') as file:
     with open('current_jobs.txt', 'r') as f:
         csv_lines = file.readlines()[1:]
         txt_lines = f.readlines()

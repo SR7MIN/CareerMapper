@@ -10,16 +10,16 @@ import csv
 def get_random_file(numbers):
     #encoding=get_encoding("C:\\Users\\jiayu.sun\\Desktop\\data\\current_jobs.txt")
     #print(encoding)
-    with open("C:\\Users\\jiayu.sun\\Desktop\\data\\current_jobs.txt",'r',encoding="ANSI") as file:
+    with open("C:\\Users\\jiayu.sun\\Desktop\\data\\current_jobs.txt", 'r', encoding="ANSI") as file:
         lines=file.readlines()
 
     random_num=[]
     for i in range(1,len(lines)):
         random_num.append(i)
 
-    file1=open("file1.csv","w",newline='',encoding='ANSI')
+    file1=open("file1.csv","w",newline='', encoding='ANSI')
     writer1=csv.writer(file1)
-    writer1.writerow(["index","岗位名称","单位名称","行业"])
+    writer1.writerow(["index", "岗位名称", "单位名称", "行业"])
     for i in range(numbers):    #输入你想要获取的随机条数
         temp=random.choice(random_num)
         myindex=random_num.index(temp)
@@ -32,11 +32,11 @@ def get_random_file(numbers):
 
 
 def get_file():
-    with open("current_jobs.txt",'r') as file:
+    with open("current_jobs.txt", 'r') as file:
         lines = file.readlines()
     
-    newfile=open("all_jobs.csv","w",newline='')
-    writer=csv.writer(newfile)
+    newfile = open("all_jobs.csv","w",newline='')
+    writer = csv.writer(newfile)
     writer.writerow(["index","岗位名称","单位名称"])
     for i in range(len(lines)):
         lineparts=lines[i].split('|')
@@ -45,5 +45,5 @@ def get_file():
     newfile.close()
 
 # get_random_file(25000)
-get_file()
+# get_file()
 
