@@ -2,7 +2,7 @@ import os
 from get_random import get_file
 from TextCnn import apply
 # 运行脚本获取所有岗位
-# os.system('python ./spider_job.py')
+os.system('python ./spider_job.py')
 # 自动分类岗位
 get_file()
 apply('all_jobs.csv', '')

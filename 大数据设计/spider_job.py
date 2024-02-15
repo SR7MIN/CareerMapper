@@ -57,7 +57,7 @@ def crawl(threadName,link_range):
         except Exception as e:
             print(threadName,"Error:",e)
 threads=[]
-link_range_list=[(1,2456),(2456,4912),(4912,7367),(7367,9824),(9824,12279),(12279,14735),(14735,17191)]
+link_range_list = [(1,2456),(2456,4912),(4912,7367),(7367,9824),(9824,12279),(12279,14735),(14735,17191)]
 
 for i in range(1,8):
     thread=myThread("Thread-"+str(i),link_range=link_range_list[i-1])
