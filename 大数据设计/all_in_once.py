@@ -7,7 +7,7 @@ os.system('python ./spider_job.py')
 get_file()
 apply('all_jobs.csv', '')
 with open('预测结果.csv', 'r') as file:
-    with open('current_jobs.txt', 'r') as f:
+    with open('current_jobs.txt', 'r',encoding='utf-8') as f:
         csv_lines = file.readlines()[1:]
         txt_lines = f.readlines()
         assert len(csv_lines) == len(txt_lines)

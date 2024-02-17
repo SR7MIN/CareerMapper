@@ -5,6 +5,9 @@ import requests
 import time
 import threading
 import urllib3.contrib.pyopenssl
+from threading import Lock
+
+mutex = Lock()
     
 urls=[]
 urls.append("https://www.ncss.cn/student/jobs/jobslist/ajax/?jobType=&areaCode=&jobName=&monthPay=&industrySectors=&recruitType=&property=&categoryCode=&memberLevel=&offset=1&limit=10&keyUnits=&degreeCode=&sourcesName=&sourcesType=&_=1707310744313")
@@ -12,7 +15,7 @@ id=1
 for i in range(1,17192):
     urls.append("https://www.ncss.cn/student/jobs/jobslist/ajax/?jobType=&areaCode=&jobName=&monthPay=&industrySectors=&recruitType=&property=&categoryCode=&memberLevel=&offset={0}&limit=10&keyUnits=&degreeCode=&sourcesName=&sourcesType=&_=1707310744313".format(i))    
 
-file=open("current_jobs.txt","w",encoding='gbk')    #file=open("current_jobs.txt","w")
+file=open("current_jobs.txt","w",encoding='utf-8')    #file=open("current_jobs.txt","w")
 #
 #     特别注意
 #
@@ -40,6 +43,7 @@ def crawl(threadName,link_range):
             requests.adapters.DEFAULT_RETRIES =5
             response_str=r.content.decode()
             jsonobj=json.loads(response_str)
+            mutex.acquire()
             for j in range(len(jsonobj['data']['list'])):
                 file.write(','.join(jsonpath.jsonpath(jsonobj,f'$.data.list[{j}].jobName')))  #岗位名称
                 file.write("|")
@@ -53,6 +57,7 @@ def crawl(threadName,link_range):
                 file.write('|')
                 file.write(','.join(jsonpath.jsonpath(jsonobj,f'$.data.list[{j}].degreeName')))   #要求学历
                 file.write('\n')
+            mutex.release()
             print(threadName,r.status_code,urls[i])
         except Exception as e:
             print(threadName,"Error:",e)
@@ -68,6 +73,14 @@ for thread in threads:
     thread.join()
 
 file.close()
+# 数据清洗，剔除不标准数据
+with open('current_jobs.txt', 'r', encoding='utf-8') as file:
+    lines = file.readlines()
+with open('current_jobs.txt', 'w', encoding='utf-8') as file:
+    for line in lines:
+        if len(line.split('|')) == 6:
+            file.write(line)
+
 end=time.time()
 print("多线程爬虫耗时：{} s".format(end-start))
 print("Exiting Main Thread")

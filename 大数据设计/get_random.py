@@ -32,10 +32,10 @@ def get_random_file(numbers):
 
 
 def get_file():
-    with open("current_jobs.txt", 'r') as file:
+    with open("current_jobs.txt", 'r',encoding='utf-8') as file:
         lines = file.readlines()
     
-    newfile = open("all_jobs.csv","w",newline='')
+    newfile = open("all_jobs.csv","w",newline='',encoding='utf-8')
     writer = csv.writer(newfile)
     writer.writerow(["index","岗位名称","单位名称"])
     for i in range(len(lines)):
