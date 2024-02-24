@@ -1,3 +1,5 @@
+import random
+
 import jieba
 import numpy as np
 from gensim.models import Word2Vec
@@ -63,21 +65,31 @@ def word2dict(words_list):
 
 
 def word2data(model: Word2Vec, sentence_len, vector_size, words_list):
+    all_words = model.wv.index_to_key
     output_len = len(i2l_dict)
     for i, words in enumerate(words_list):
         temp = np.zeros([sentence_len, vector_size])
         for j in range(min(len(words), sentence_len)):
-            temp[j] = np.asarray(model.wv[words[j]])
+            if words[j] in all_words:
+                temp[j] = np.asarray(model.wv[words[j]])
         inputs.append(temp)
         tar_vec = np.zeros(output_len)
         tar_vec[l2i_dict[label_list[i]]] = 1
         targets.append(tar_vec)
 
 
-def load_text_data(data_path, model: Word2Vec, sentence_len, vector_size):
+def load_text_data(data_path, model: Word2Vec, sentence_len, vector_size, _rand=False):
     load_train_data(data_path)
     words_list = sentence2word()
     word2data(model, sentence_len, vector_size, words_list)
+    if _rand:
+        inp = inputs
+        tar = targets
+        x = [[inp[i], tar[i]] for i in range(len(inputs))]
+        random.shuffle(x)
+        inp = [x[i][0] for i in range(len(x))]
+        tar = [x[i][1] for i in range(len(x))]
+        return inp, tar, label_list, l2i_dict, i2l_dict, sentence_list
     return inputs, targets, label_list, l2i_dict, i2l_dict, sentence_list
 
 

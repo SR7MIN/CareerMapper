@@ -1,7 +1,6 @@
 import csv
 
 import gensim
-import numpy
 import numpy as np
 import torch
 from gensim.models import Word2Vec
@@ -18,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 np.random.seed(0)
 # 全局变量
 basedir = './logs'  # 训练数据保存文件夹
-expname = '1000'  # 实验名
+expname = '1003'  # 实验名
 
 
 def create_textcnn_model():
@@ -59,13 +58,12 @@ def train():
     # 测试变量
     i_print = 10000  # 打印测试信息的轮数
     i_weights = 5000  # 保存训练信息的轮数
-    i_test = 500
+    i_test = 5000
     writer = SummaryWriter(os.path.join(basedir, expname))
 
     w2v_model = gensim.models.Word2Vec.load("./words.model")
-    inputs, targets, label_list, l2i_dict, i2l_dict, sentence_list = load_text_data("111.csv", w2v_model, 20, 100)
-
-
+    inputs, targets, label_list, l2i_dict, i2l_dict, sentence_list = load_text_data("111.csv", w2v_model, 20, 100,
+                                                                                    False)
 
     rand_num = 1600
     test = Tensor(np.stack(inputs[:rand_num])).to(device)
@@ -123,19 +121,19 @@ def train():
 
             writer.add_scalar("模型的loss变化", loss.item(), i)
 
-        # 打印训练信息
-        if i % i_print == 0:
-            tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}")
+            # 打印训练信息
+            if i % i_print == 0:
+                tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}")
 
-        # 保存训练参数
-        if i % i_weights == 0:
-            path = os.path.join(basedir, expname, '{:06d}.tar'.format(i))
-            torch.save({
-                'global_step': global_step,
-                'network_fn_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-            }, path)
-            print('Saved checkpoints at', path)
+            # 保存训练参数
+            if i % i_weights == 0:
+                path = os.path.join(basedir, expname, '{:06d}.tar'.format(i))
+                torch.save({
+                    'global_step': global_step,
+                    'network_fn_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                }, path)
+                print('Saved checkpoints at', path)
 
         if i % i_test == 0:
             testsavedir = os.path.join(basedir, expname, 'testset_{:06d}.csv'.format(i))
@@ -153,9 +151,9 @@ def train():
                             fault_count += 1
                             if idx_t in [6, 21] and idx_p in [6, 21]:
                                 fault_count -= 1
-                    csv_writer.writerow(['误差：{}%'.format(fault_count/rand_num*100)])
+                    csv_writer.writerow(['误差：{}%'.format(fault_count / rand_num * 100)])
 
-
+        global_step += 1
 
 
 def apply(path, save_path):

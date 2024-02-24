@@ -1,4 +1,5 @@
 import os
+from assess_jobs import assess_job
 from get_random import get_file
 from TextCnn import apply
 # 运行脚本获取所有岗位
@@ -14,5 +15,6 @@ with open('预测结果.csv', 'r') as file:
         for i in range(len(csv_lines)):
             csv_temp = csv_lines[i].replace('\r', '').replace('\n', '').split(',')
             txt_lines[i] = txt_lines[i].replace('\r', '').replace('\n', '') + '|' + csv_temp[-1] + '\n'
-    with open('current_jobs.txt', 'w') as f:
+    with open('current_jobs.txt', 'w',encoding='utf-8') as f:
         f.writelines(txt_lines)
+assess_job()

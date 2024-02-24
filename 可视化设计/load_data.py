@@ -3,12 +3,22 @@ from pypinyin import lazy_pinyin
 all_majors = []
 all_jobs = []
 all_subs = []
+
 majordict = {}
 jobdict = {}
 subdict = {}
+
+postlist = []
+
 m2i_dict = {}
 i2m_dict = {}
+i2j_dict = {}
+j2i_dict = {}
+i2p_dict = {}
+p2i_dict = {}
 major_job_vectors = []
+
+all_salary_dict = {}
 
 
 class MajorData:
@@ -34,7 +44,7 @@ class JobData:
     def set_major_rate(self, rates):
         self.major_rates = rates
 
-class SubData:
+class SupData:
     def __init__(self, major_people, people, salary):
         self.major_people = major_people
         self.people = people
@@ -44,6 +54,22 @@ class SubData:
     def set_major_rate(self, rates):
         self.major_rates = rates
 
+class PostData:
+    def __init__(self, name, recName, highMonthPay, lowMonthPay, headCount ,degreeName, job, mark):
+        self.name = name
+        self.recName = recName
+        self.highMonthPay = highMonthPay
+        self.lowMonthPay = lowMonthPay
+        self.headCount = headCount
+        self.degreeName = degreeName
+        self.job = job
+        self.mark = float(mark)
+
+    def get(self):
+        return '岗位名：' + self.name + ' 公司名: ' + self.recName + '学历: ' + self.degreeName
+
+
+
 
 def load_major_data(dir):
     # 加载所有专业，细分和国统行业的名字，专业到行业的去向比例
@@ -52,6 +78,8 @@ def load_major_data(dir):
     file3 = os.path.join(dir, '18个国统局行业的信息.csv')
     file4 = os.path.join(dir, '47个行业的信息.csv')
     file5 = os.path.join(dir, '去向拟合数据.csv')
+    file6 = os.path.join(dir, 'posts.csv')
+    file7 = os.path.join(dir, '国统局薪资水平.csv')
     with open(file1, 'r') as f:
         count = 0
         lines = f.readlines()[1:]
@@ -81,7 +109,7 @@ def load_major_data(dir):
         for line in lines:
             temp = line.replace('\r', '').replace('\n', '').split(',')
             all_subs.append(temp[1])
-            subdict[temp[1]] = SubData(temp[2], temp[3], temp[4])
+            subdict[temp[1]] = SupData(temp[2], temp[3], temp[4])
             rates = {}
             for s in temp[5:]:
                 a, b = s.split(':')
@@ -105,6 +133,26 @@ def load_major_data(dir):
             temp = line.replace('\r', '').replace('\n', '').split(',')
             major_job_vectors.append([float(s) for s in temp])
 
+    with open(file6, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+        for line in lines:
+            temp = line.replace('\r', '').replace('\n', '').split(',')
+            if len(temp) == 8:
+                postlist.append(PostData(temp[0], temp[1], temp[2], temp[3], temp[4], temp[5], temp[6], temp[7]))
+
+    with open(file7, 'r') as f:
+        lines = f.readlines()
+        years = lines[0].replace('\r', '').replace('\n', '').split(',')[1:]
+        for line in lines[1:]:
+            temp = line.replace('\r', '').replace('\n', '').split(',')
+            name = temp[0]
+            temp = [_ for _ in reversed(temp[1:])]
+            temp_dict = {}
+            for i, year in enumerate(reversed(years)):
+                temp_dict[year] = float(temp[i])
+            all_salary_dict[name] = temp_dict
+
     all_subs.sort(key=lambda char: lazy_pinyin(char)[0][0])
     all_majors.sort(key=lambda char: lazy_pinyin(char)[0][0])
     all_jobs.sort(key=lambda char: lazy_pinyin(char)[0][0])
+

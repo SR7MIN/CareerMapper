@@ -41,12 +41,14 @@ class MainWindow(QWidget):
         self.Job_button.clicked.connect(self.show_job_window)
 
     def show_major_window(self):
+        self.Major_window.close()
         self.Major_window.my_show(self.Major_label.currentText())
 
     def show_job_window(self):
+        self.Job_window.close()
         name = self.Job_label.currentText()
         if name in all_subs:
-            self.Job_window.my_show(name, 'sub')
+            self.Job_window.my_show(name, 'sup')
         else:
             self.Job_window.my_show(name, 'job')
 

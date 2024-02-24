@@ -7,7 +7,7 @@ import os
 from tqdm import trange, tqdm
 from torch.utils.tensorboard import SummaryWriter
 
-from 大数据设计.load_train_data import load_salary, load_both_indicator
+from load_train_data import load_salary, load_both_indicator
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'

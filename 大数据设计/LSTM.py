@@ -7,20 +7,20 @@ from tqdm import trange, tqdm
 from torch.utils.tensorboard import SummaryWriter
 
 from model_helper import RegLSTM, MSE
-from 大数据设计.load_train_data import load_people
+from load_train_data import load_people
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # 全局变量
 basedir = './logs'  # 训练数据保存文件夹
-expname = '101'  # 实验名
+expname = '102'  # 实验名
 
 
 def create_Subjob_predictive_model(ch):
     # 模型参数设定
     netdepth = 6
-    netwidth = 32
+    netwidth = 8
 
     # 训练参数设定
     lrate = 5e-4  # 学习率

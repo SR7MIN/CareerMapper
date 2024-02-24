@@ -9,7 +9,7 @@ def convert(path, path2):
             for line in lines:
                 temp = line.replace('\r', '').replace('\n', '').replace('   ', '').split(' ')
                 if len(temp) == 4:
-                    csv_writer.writerow(temp[1:])
+                    csv_writer.writerow([temp[1] + temp[2], temp[3]])
 
 
 convert("try.txt", "111.csv")
