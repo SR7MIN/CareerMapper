@@ -1,9 +1,11 @@
+import random
+
 from PyQt5.QtChart import QPieSeries, QPieSlice, QChart, QChartView, QCategoryAxis, QValueAxis, QScatterSeries, \
     QLineSeries, QBarSeries, QBarSet
 from PyQt5.QtCore import Qt, QPointF, QPoint
 from PyQt5.QtGui import QColor, QPainter, QBrush, QPen, QCursor, QFont, QRadialGradient
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QGraphicsLinearLayout, \
-    QGraphicsEllipseItem
+    QGraphicsEllipseItem, QGraphicsScene, QGraphicsView, QTextEdit, QScrollBar
 
 
 def get_lower_num(num):
@@ -305,3 +307,84 @@ class BarChartWindow(QWidget):
             self.my_valueLabel.show()
         else:
             self.my_valueLabel.hide()
+
+
+class ScatterChartWindow(QGraphicsView):
+    def __init__(self, parent, data, name):
+        super(ScatterChartWindow, self).__init__(parent)
+        self.setWindowTitle(name)
+        self.setFixedSize(600, 600)
+        self.scene = QGraphicsScene(self)
+        self.setScene(self.scene)
+
+        self.data = data
+        self.plot_data()
+
+    def plot_data(self):
+        x_range = (min(self.data, key=lambda x: x[0])[0], max(self.data, key=lambda x: x[0])[0])
+        y_range = (min(self.data, key=lambda x: x[1])[1], max(self.data, key=lambda x: x[1])[1])
+
+        for point in self.data:
+            x, y = point
+            scaled_x = self.map_value(x, x_range, (0, self.width()))
+            scaled_y = self.map_value(y, y_range, (self.height(), 0))
+
+            ellipse = QGraphicsEllipseItem(scaled_x, scaled_y, 2, 2)  # Fix here
+            ellipse.setBrush(Qt.blue)
+            self.scene.addItem(ellipse)
+
+    def map_value(self, value, from_range, to_range):
+        return (value - from_range[0]) / (from_range[1] - from_range[0]) * (to_range[1] - to_range[0]) + to_range[0]
+
+
+class ScrollableTextBox(QWidget):
+    def __init__(self, parent, data):
+        super().__init__(parent)
+        self.curr_max = -1
+        self.data = data
+        self.initUI()
+
+
+    def initUI(self):
+        self.setWindowTitle('Scrollable Text Box')
+        self.setFixedSize(400, 700)
+
+        self.layout = QVBoxLayout()
+
+        self.text_edit = QTextEdit()
+        self.text_edit.setReadOnly(True)
+        self.layout.addWidget(self.text_edit)
+
+        self.scrollbar = QScrollBar()
+        # self.scrollbar.setMaximum(100)  # 设置滚动条的最大值
+        self.scrollbar.valueChanged.connect(self.scroll_text)  # 连接滚动条的滑动事件
+
+        self.text_edit.setVerticalScrollBar(self.scrollbar)
+
+        self.setLayout(self.layout)
+
+        self.batch_size = 100  # 每批次加载的文本数量
+        self.total_lines = 100000  # 总文本行数
+        self.loaded_lines = 0  # 已加载的文本行数
+
+        self.populate_text(0)
+
+    def populate_text(self, pos):
+        # 模拟从数据库或文件中加载文本的过程
+        text_list = self.data[self.loaded_lines:self.batch_size + self.loaded_lines]
+        random.shuffle(text_list)
+        for i in range(self.batch_size):
+            self.text_edit.append(f'第{self.loaded_lines + i + 1}个岗位\n' + text_list[i])
+
+        self.loaded_lines += self.batch_size
+        self.scrollbar.setValue(pos)
+
+    def scroll_text(self, value):
+        # 当滚动到底部时加载更多文本
+        if self.curr_max < 0:
+            self.curr_max = self.scrollbar.maximum()
+        if value == self.curr_max:
+            if self.loaded_lines < self.total_lines:
+                self.populate_text(self.curr_max)
+                # self.scrollbar.setMaximum(min(self.loaded_lines, self.total_lines))
+                self.curr_max = self.scrollbar.maximum()

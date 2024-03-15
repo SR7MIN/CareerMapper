@@ -1,5 +1,6 @@
 import os
 from pypinyin import lazy_pinyin
+import matplotlib.pyplot as plt
 all_majors = []
 all_jobs = []
 all_subs = []
@@ -58,17 +59,20 @@ class PostData:
     def __init__(self, name, recName, highMonthPay, lowMonthPay, headCount ,degreeName, job, mark):
         self.name = name
         self.recName = recName
-        self.highMonthPay = highMonthPay
-        self.lowMonthPay = lowMonthPay
+        self.highMonthPay = float(highMonthPay)
+        self.lowMonthPay = float(lowMonthPay)
+        self.MonthPay = (self.highMonthPay + self.lowMonthPay)*0.5
         self.headCount = headCount
         self.degreeName = degreeName
         self.job = job
         self.mark = float(mark)
+        self.rates = None
 
     def get(self):
         return '岗位名：' + self.name + ' 公司名: ' + self.recName + '学历: ' + self.degreeName
 
-
+    def set_rates(self, rates):
+        self.rates = rates
 
 
 def load_major_data(dir):
@@ -80,6 +84,7 @@ def load_major_data(dir):
     file5 = os.path.join(dir, '去向拟合数据.csv')
     file6 = os.path.join(dir, 'posts.csv')
     file7 = os.path.join(dir, '国统局薪资水平.csv')
+    file8 = os.path.join(dir, '预测结果(概率).csv')
     with open(file1, 'r') as f:
         count = 0
         lines = f.readlines()[1:]
@@ -135,10 +140,11 @@ def load_major_data(dir):
 
     with open(file6, 'r', encoding='utf-8') as f:
         lines = f.readlines()
-        for line in lines:
+        for i, line in enumerate(lines):
             temp = line.replace('\r', '').replace('\n', '').split(',')
             if len(temp) == 8:
-                postlist.append(PostData(temp[0], temp[1], temp[2], temp[3], temp[4], temp[5], temp[6], temp[7]))
+                i2p_dict[i] = PostData(temp[0], temp[1], temp[2], temp[3], temp[4], temp[5], temp[6], temp[7])
+                postlist.append(i2p_dict[i])
 
     with open(file7, 'r') as f:
         lines = f.readlines()
@@ -152,7 +158,58 @@ def load_major_data(dir):
                 temp_dict[year] = float(temp[i])
             all_salary_dict[name] = temp_dict
 
+    with open(file8, 'r') as f:
+        temp = f.readlines()
+        head = temp[0].replace('\r', '').replace('\n', '').split(',')[2:]
+        lines = temp[1:]
+        for i, line in enumerate(lines):
+            temp = line.replace('\r', '').replace('\n', '').split(',')
+            if i not in i2p_dict.keys():
+                continue
+            rates = {}
+            for j, num in enumerate(temp[2:]):
+                rates[head[j]] = float(num)
+            i2p_dict[i].set_rates(rates)
+
+
     all_subs.sort(key=lambda char: lazy_pinyin(char)[0][0])
     all_majors.sort(key=lambda char: lazy_pinyin(char)[0][0])
     all_jobs.sort(key=lambda char: lazy_pinyin(char)[0][0])
 
+
+def draw_salary():
+    salary_dict = {}
+    b = []
+    a=0
+    for post in postlist:
+        a+=post.MonthPay
+        b.append(post.MonthPay)
+        if post.MonthPay != 0 and int(post.MonthPay) not in salary_dict:
+            salary_dict[int(post.MonthPay)] = 1
+        elif post.MonthPay != 0:
+            salary_dict[int(post.MonthPay)] += 1
+    plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
+    plt.figure(figsize=(10, 10), dpi=100)
+    import numpy as np
+    x, y = np.stack(list(salary_dict.keys())), np.stack(list(salary_dict.values()))
+    idx = x.argsort()
+    x = [x[i] for i in idx]
+    y = [y[i] for i in idx]
+    plt.plot(x, y)
+    plt.title('校招岗位薪资分布图')
+    plt.xlabel('薪资（单位：千元）')
+    plt.ylabel('数量（单位：个）')
+    plt.show()
+
+    mark = np.stack([post.mark for post in postlist])
+    print(np.percentile(mark, 99))
+    # print(a/len(salary_dict))
+
+
+
+# def normalize_post():
+#     marks = [post.mark for post in postlist]
+#     _sum = sum(marks)
+#     marks = [m / _sum for m in marks]
+#     for i, post in enumerate(postlist):
+#         post.mark = marks[i] * 100

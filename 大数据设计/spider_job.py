@@ -7,12 +7,18 @@ import threading
 import urllib3.contrib.pyopenssl
 from threading import Lock
 
+
 mutex = Lock()
     
 urls=[]
 urls.append("https://www.ncss.cn/student/jobs/jobslist/ajax/?jobType=&areaCode=&jobName=&monthPay=&industrySectors=&recruitType=&property=&categoryCode=&memberLevel=&offset=1&limit=10&keyUnits=&degreeCode=&sourcesName=&sourcesType=&_=1707310744313")
 id=1
-for i in range(1,17192):
+all_index = 17192
+all_thread = 7
+job_num = 0
+
+num = int(all_index / all_thread)
+for i in range(1, all_index):
     urls.append("https://www.ncss.cn/student/jobs/jobslist/ajax/?jobType=&areaCode=&jobName=&monthPay=&industrySectors=&recruitType=&property=&categoryCode=&memberLevel=&offset={0}&limit=10&keyUnits=&degreeCode=&sourcesName=&sourcesType=&_=1707310744313".format(i))    
 
 file=open("current_jobs.txt","w",encoding='utf-8')    #file=open("current_jobs.txt","w")
@@ -23,6 +29,7 @@ file=open("current_jobs.txt","w",encoding='utf-8')    #file=open("current_jobs.t
 #请去除该编码方式，在爬取后手动改变current_jobs的编码方式，从ANSI改为utf-8！！！
 #
 start=time.time()
+
 class myThread(threading.Thread):
     def __init__(self,name,link_range):
         threading.Thread.__init__(self)
@@ -32,6 +39,8 @@ class myThread(threading.Thread):
         print("Starting"+self.name)
         crawl(self.name,self.link_range)
         print("Exiting"+self.name)
+
+all_text_lines = []
 
 def crawl(threadName,link_range):
     for i in range(link_range[0],link_range[1]+1):
@@ -58,14 +67,20 @@ def crawl(threadName,link_range):
                 file.write(','.join(jsonpath.jsonpath(jsonobj,f'$.data.list[{j}].degreeName')))   #要求学历
                 file.write('\n')
             mutex.release()
-            print(threadName,r.status_code,urls[i])
+            # print(threadName,r.status_code,urls[i])
         except Exception as e:
-            print(threadName,"Error:",e)
-threads=[]
-link_range_list = [(1,2456),(2456,4912),(4912,7367),(7367,9824),(9824,12279),(12279,14735),(14735,17191)]
+            pass
+            # print(threadName,"Error:",e)
+        global job_num
+        job_num += 1
+        print('\r爬取进度：{0}/{1}'.format(job_num, all_index), end="")
 
-for i in range(1,8):
-    thread=myThread("Thread-"+str(i),link_range=link_range_list[i-1])
+threads=[]
+link_range_list = [(i*num, (i + 1)*num) for i in range(all_thread)]
+# link_range_list = [(1,2456),(2456,4912),(4912,7367),(7367,9824),(9824,12279),(12279,14735),(14735,17191)]
+
+for i in range(all_thread):
+    thread=myThread("Thread-"+str(i),link_range=link_range_list[i])
     thread.start()
     threads.append(thread)
 
@@ -73,6 +88,7 @@ for thread in threads:
     thread.join()
 
 file.close()
+
 # 数据清洗，剔除不标准数据
 with open('current_jobs.txt', 'r', encoding='utf-8') as file:
     lines = file.readlines()

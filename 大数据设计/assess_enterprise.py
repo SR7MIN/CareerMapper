@@ -1,6 +1,7 @@
 import csv
 import numpy as np
 import pandas as pd
+import math
 
 SCALE_DICT={"XS(微型)":"1","S(小型)":"2","M(中型)":"3","L(大型)":"4","--":"2.5"}
 
@@ -34,10 +35,10 @@ def assess_enterprise_point(year):
     sum_point=0
     for i in range(len(PD)):
         name=PD.iloc[i,2]
-        if(PD.iloc[i,4]!="--"):
+        if PD.iloc[i,4]!="--":
             #只考虑年份
             try:
-                point=float(SCALE_DICT[PD.iloc[i,3]])*SCALE_POINT+float(PD.iloc[i,4])*CAPITAL_POINT+(year-float(str(PD.iloc[i,5]).split('-')[0]))*DATE_POINT
+                point=float(SCALE_DICT[PD.iloc[i,3]])*SCALE_POINT+math.log(float(PD.iloc[i,4]), 10)*CAPITAL_POINT+(year-float(str(PD.iloc[i,5]).split('-')[0]))*DATE_POINT
                 POINT.append(point)
                 sum_point+=point
                 writer.writerow([name,point])
@@ -64,5 +65,5 @@ def assess_enterprise_point(year):
     file.close()
     return average_point
 
-#average_point=assess_enterprise_point(2024)
+# average_point=assess_enterprise_point(2024)
 #print(average_point)

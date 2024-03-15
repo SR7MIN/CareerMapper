@@ -11,6 +11,8 @@ class MainWindow(QWidget):
         self.setFixedSize(640, 320)
         load_major_data('./data')
 
+        # normalize_post()
+
         # 控件
         self.Major_label = QComboBox(self)
         self.Major_label.setFixedSize(300, 50)
@@ -32,6 +34,11 @@ class MainWindow(QWidget):
         self.Job_button.setFixedSize(100, self.Job_label.size().height())
         self.Job_button.move(self.Job_label.x() + self.Job_label.size().width() + 10, self.Job_label.y())
 
+        self.post_button = QPushButton(self)
+        self.post_button.setText('应届生岗位薪资查看')
+        self.post_button.setFixedSize(250, self.Job_label.size().height())
+        self.post_button.move(195, 220)
+
         # 窗口
         self.Major_window = MajorWindow()
         self.Job_window = JobWindow()
@@ -39,6 +46,7 @@ class MainWindow(QWidget):
         # 信号
         self.Major_button.clicked.connect(self.show_major_window)
         self.Job_button.clicked.connect(self.show_job_window)
+        self.post_button.clicked.connect(draw_salary)
 
     def show_major_window(self):
         self.Major_window.close()

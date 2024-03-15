@@ -1,12 +1,13 @@
 import os
 from assess_jobs import assess_job
 from get_random import get_file
-from TextCnn import apply
+from TextCnn import apply, apply_ambiguous
 # 运行脚本获取所有岗位
 os.system('python ./spider_job.py')
 # 自动分类岗位
 get_file()
 apply('all_jobs.csv', '')
+apply_ambiguous('all_jobs.csv', '')
 with open('预测结果.csv', 'r') as file:
     with open('current_jobs.txt', 'r',encoding='utf-8') as f:
         csv_lines = file.readlines()[1:]

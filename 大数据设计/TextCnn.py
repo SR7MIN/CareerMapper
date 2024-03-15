@@ -14,10 +14,11 @@ from load_text_data import load_text_data, load_apply_data
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device('cpu')
 np.random.seed(0)
 # 全局变量
 basedir = './logs'  # 训练数据保存文件夹
-expname = '1003'  # 实验名
+expname = '1000'  # 实验名
 
 
 def create_textcnn_model():
@@ -172,5 +173,22 @@ def apply(path, save_path):
                 csv_writer.writerow([text_list[i][0], text_list[i][1], i2l_dict[idx_p]])
 
 
+def apply_ambiguous(path, save_path):
+    w2v_model = gensim.models.Word2Vec.load("./words.model")
+    text_list, inputs, i2l_dict = load_apply_data(path, w2v_model, 20, 100)
+    inputs = Tensor(np.stack(inputs)).to(device)
+    model, start, grad_vars, optimizer, raw_noise_std = create_textcnn_model()
+    testsavedir = os.path.join(save_path, '预测结果(概率).csv')
+    with torch.no_grad():
+        outs = model(inputs[:, None])
+        with open(testsavedir, 'w', newline='') as file:
+            csv_writer = csv.writer(file)
+            csv_writer.writerow(['岗位', '企业'] + [i2l_dict[i] for i in range(len(i2l_dict))])
+            for i, out in enumerate(outs):
+                out = torch.softmax(out, 0).cpu().numpy()
+                temp = [str(out[_i]) for _i in range(out.shape[0])]
+                csv_writer.writerow([text_list[i][0], text_list[i][1]] + temp)
+
+
 # train()
-# apply('all_jobs.txt', os.path.join(basedir, expname))
+# apply_ambiguous('all_jobs.csv', '')

@@ -29,6 +29,6 @@ def get_info(id):
     file.close()
 
 
-for i in range(300, 20001):
+for i in range(0, 20001):
     get_info(i)
 
