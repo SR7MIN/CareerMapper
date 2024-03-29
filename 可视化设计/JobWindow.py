@@ -8,7 +8,7 @@ class JobWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('行业信息展示')
-        self.setFixedSize(1500, 1000)
+        self.setFixedSize(1500, 850)
         mid_width = 600
 
         font = QFont("微软雅黑", 10, QFont.Bold)
@@ -41,9 +41,9 @@ class JobWindow(QWidget):
         # 行业相关度
         temp_name = []
         temp_rate = []
-        for name, rate in d[:5]:
-            temp_name.append(name)
-            temp_rate.append(rate)
+        for _name, _rate in d[:5]:
+            temp_name.append(_name)
+            temp_rate.append(_rate)
         a = PieChartWidget(self, '专业相关度(前5)', temp_name, temp_rate)
 
         # 薪资水平
@@ -57,8 +57,11 @@ class JobWindow(QWidget):
         l = len(all_salary_dict[sub_name])
         b = ColoredLineChart(self, all_salary_dict[sub_name], [l-2, l-1], '历史薪资数据',
                              '预测薪资数据', '历年平均薪资折线图（单位：元）')
-        b.move(0, 500)
-        self.people_label.setText('行业人数：' + str(jobdata.people).split('.')[0] + '人')
+        b.move(0, 350)
+        if cater == 'sup':
+            self.people_label.setText('行业人数：' + str(jobdata.people).split('.')[0] + '万人')
+        else:
+            self.people_label.setText('行业人数：' + str(jobdata.people).split('.')[0] + '人')
 
         self.show()
 

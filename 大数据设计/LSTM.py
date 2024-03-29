@@ -1,7 +1,6 @@
 import csv
 import numpy as np
 import torch
-from torch import Tensor
 import os
 from tqdm import trange, tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -14,13 +13,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # 全局变量
 basedir = './logs'  # 训练数据保存文件夹
-expname = '102'  # 实验名
+expname = '103'  # 实验名
 
 
 def create_Subjob_predictive_model(ch):
     # 模型参数设定
     netdepth = 6
-    netwidth = 8
+    netwidth = 32
 
     # 训练参数设定
     lrate = 5e-4  # 学习率
@@ -57,7 +56,7 @@ def train():
     i_test = 100
     writer = SummaryWriter(os.path.join(basedir, expname))
     # 人员数据到2022结束
-    data, i2n_dict, n2i_dict = load_people("./data\\job\\国统局行业人数.csv")
+    data, i2n_dict, n2i_dict = load_people("./data\\job\\行业人数原始数据.csv")
     init_data = data.copy()
     data = data[1:] - data[:data.shape[0]-1]
 
@@ -72,8 +71,8 @@ def train():
     # data = (data - data.min()) / (data.max() - data.min()) * scaler_max
 
     date_num = data.shape[0]
-    targets = data.copy()[:date_num - 1]
-    inputs = data.copy()[1:]
+    targets = data.copy()[1:]
+    inputs = data.copy()[:date_num - 1]
 
     targets = torch.Tensor(targets[:, None]).to(device)
     inputs = torch.Tensor(inputs[:, None]).to(device)
@@ -133,17 +132,27 @@ def train():
         if i % i_test == 0:
             testsavedir = os.path.join(basedir, expname, 'testset_{:06d}.csv'.format(i))
             with torch.no_grad():
-                out = model(test[1:])  # 以20年为时间步预测
+                test = targets
+                out = model(test)  # 以20年为时间步预测
                 loss = torch.sqrt(MSE(output[:output.shape[0] - 1], targets[1:])).cpu().numpy()
                 _data = init_data[1:] - init_data[:init_data.shape[0] - 1]
                 # output = output / scaler_max * (_max - _min) + _min
                 out = torch.stack([out[..., i] / scaler_max * scaler_list[i][1] + scaler_list[i][0] for i in range(out.shape[-1])], dim=-1)
-                output = out[-1].reshape(test.shape[-1])
+                # output = out[-1].reshape(test.shape[-1])
+                # with open(testsavedir, 'w', newline='') as file:
+                #     csv_writer = csv.writer(file)
+                #     csv_writer.writerow(['行业', '预测数据', '理论误差范围（正负）'])
+                #     for i, num in enumerate(output):
+                #         csv_writer.writerow([i2n_dict[i], num.cpu().numpy() + init_data[-1][i], abs(loss * np.percentile(sorted(_data[..., i]), 50))])
+                out = [init_data[i + 1] + out[i].reshape(test.shape[-1]).cpu().numpy() for i in range(output.shape[0])]
+                out = np.stack(out).swapaxes(0, 1)
                 with open(testsavedir, 'w', newline='') as file:
                     csv_writer = csv.writer(file)
-                    csv_writer.writerow(['行业', '预测数据', '理论误差范围（正负）'])
-                    for i, num in enumerate(output):
-                        csv_writer.writerow([i2n_dict[i], num.cpu().numpy() + init_data[-1][i], abs(loss * np.percentile(sorted(_data[..., i]), 50))])
+                    csv_writer.writerow(['行业', '预测数据'])
+                    for i in range(out.shape[0]):
+                        csv_writer.writerow([i2n_dict[i]] + list(reversed(out[i])))
+
+
 
 
 

@@ -1,10 +1,9 @@
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import *
-from load_data import *
 from sklearn.metrics.pairwise import cosine_similarity
-import math
-from subassembly import PieChartWidget, BarChartWindow, ScatterChartWindow, ScrollableTextBox
-import matplotlib.pyplot as plt
+
+from load_data import *
+from subassembly import PieChartWidget, BarChartWindow, ScrollableTextBox
 
 
 class MajorWindow(QWidget):
@@ -68,7 +67,7 @@ class MajorWindow(QWidget):
                         + data.degreeName + '\n' + f'薪资{data.lowMonthPay}-{data.highMonthPay}（千元）\n')
         # self.post_label.setText(temp)
         post_text = ScrollableTextBox(self, temp)
-        post_text.move(self.mid_width, 320)
+        post_text.move(self.mid_width, 280)
         post_text.show()
         # 显示薪资分布
         def query_func1(post: PostData):

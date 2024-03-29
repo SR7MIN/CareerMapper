@@ -2,10 +2,10 @@ import random
 
 from PyQt5.QtChart import QPieSeries, QPieSlice, QChart, QChartView, QCategoryAxis, QValueAxis, QScatterSeries, \
     QLineSeries, QBarSeries, QBarSet
-from PyQt5.QtCore import Qt, QPointF, QPoint
-from PyQt5.QtGui import QColor, QPainter, QBrush, QPen, QCursor, QFont, QRadialGradient
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QGraphicsLinearLayout, \
-    QGraphicsEllipseItem, QGraphicsScene, QGraphicsView, QTextEdit, QScrollBar
+from PyQt5.QtCore import Qt, QPointF
+from PyQt5.QtGui import QColor, QPainter, QBrush, QPen, QCursor, QFont
+from PyQt5.QtWidgets import QVBoxLayout, QWidget, QLabel, QGraphicsEllipseItem, QGraphicsScene, QGraphicsView, \
+    QTextEdit, QScrollBar
 
 
 def get_lower_num(num):

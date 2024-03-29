@@ -53,7 +53,7 @@ def assess_job():
     for line in lines:
         line = line.replace('\r', '').replace('\n', '')
         fields = line.split('|')
-        if len(fields) == 7 and len(fields[5]) != 0:
+        if len(fields) >= 7 and len(fields[5]) != 0:
             enterprise = fields[1]
             max_salary_str = fields[2]
             min_salary_str = fields[3]
