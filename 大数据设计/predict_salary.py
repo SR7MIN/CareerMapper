@@ -18,7 +18,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # 全局变量
 basedir = './logs'  # 训练数据保存文件夹
-expname = '011'  # 实验名
+expname = '010'  # 实验名
 
 
 def run_network(gdb, gdb_sub, time, network_fn):
