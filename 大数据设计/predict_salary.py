@@ -18,7 +18,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # 全局变量
 basedir = './logs'  # 训练数据保存文件夹
-expname = '012'  # 实验名
+expname = '011'  # 实验名
 
 
 def run_network(gdb, gdb_sub, time, network_fn):
@@ -162,27 +162,27 @@ def train():
         if i % i_test == 0:
             testsavedir = os.path.join(basedir, expname, 'testset_{:06d}.csv'.format(i))
             with torch.no_grad():
-                # gdb, gdb_sub, time = test[:3], test[3:6], test[6:]
-                # output = network_query_fn(gdb, gdb_sub, time, model)
-                # #  output = output / scaler_max * (_max - _min) + _min
-                # output = [output[i] / scaler_max * scaler_list[i][1] + scaler_list[i][0] for i in range(len(output))]
-                # with open(testsavedir, 'w', newline='') as file:
-                #     csv_writer = csv.writer(file)
-                #     for i, num in enumerate(output):
-                #         csv_writer.writerow([i2n_dict[i], num.cpu().numpy()])
-                tests = torch.concatenate([test[None,:], inputs], 0)
+                gdb, gdb_sub, time = test[:3], test[3:6], test[6:]
+                output = network_query_fn(gdb, gdb_sub, time, model)
+                #  output = output / scaler_max * (_max - _min) + _min
+                output = [output[i] / scaler_max * scaler_list[i][1] + scaler_list[i][0] for i in range(len(output))]
                 with open(testsavedir, 'w', newline='') as file:
                     csv_writer = csv.writer(file)
-                    outputs = []
-                    for test in tests:
-                        gdb, gdb_sub, time = test[:3], test[3:6], test[6:]
-                        output = network_query_fn(gdb, gdb_sub, time, model).cpu().numpy()
-                        output = [output[i] / scaler_max * scaler_list[i][1] + scaler_list[i][0] for i in
-                                  range(len(output))]
-                        outputs.append(output)
-                    outputs = numpy.stack(outputs).swapaxes(0, 1)
-                    for i, output in enumerate(outputs):
-                        csv_writer.writerow([i2n_dict[i]] + list(output))
+                    for i, num in enumerate(output):
+                        csv_writer.writerow([i2n_dict[i], num.cpu().numpy()])
+                # tests = torch.concatenate([test[None,:], inputs], 0)
+                # with open(testsavedir, 'w', newline='') as file:
+                #     csv_writer = csv.writer(file)
+                #     outputs = []
+                #     for test in tests:
+                #         gdb, gdb_sub, time = test[:3], test[3:6], test[6:]
+                #         output = network_query_fn(gdb, gdb_sub, time, model).cpu().numpy()
+                #         output = [output[i] / scaler_max * scaler_list[i][1] + scaler_list[i][0] for i in
+                #                   range(len(output))]
+                #         outputs.append(output)
+                #     outputs = numpy.stack(outputs).swapaxes(0, 1)
+                #     for i, output in enumerate(outputs):
+                #         csv_writer.writerow([i2n_dict[i]] + list(output))
 
 
         global_step += 1
